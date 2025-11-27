@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button'; // Importando do Shadcn
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { TEXTS } from '@/lib/constants';
+import { api } from '@/lib/axios';
 
 interface Props {
   latitude: number;
@@ -20,15 +20,11 @@ export function CreateVisitForm({ latitude, longitude, onSuccess, onCancel }: Pr
 
   const mutation = useMutation({
     mutationFn: async () => {
-      // Enviando para o Backend
-      return axios.post('http://localhost:3333/visits', {
+      return api.post('/visits', {
         latitude,
         longitude,
         focoType,
         notes,
-        hasFoco: focoType !== 'NENHUM', 
-        
-        agentId: 'b1cc9812-e18b-4c84-8ab0-bc4de4456be3', 
       });
     },
     onSuccess: () => {
@@ -44,14 +40,13 @@ export function CreateVisitForm({ latitude, longitude, onSuccess, onCancel }: Pr
   return (
     <Card className="w-[300px] border-0 shadow-none">
       <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-lg">Nova Visita</CardTitle>
+        <CardTitle className="text-lg">{TEXTS.MAP.NEW_VISIT_TITLE}</CardTitle>
         <p className="text-xs text-gray-500">
           Local: {latitude.toFixed(4)}, {longitude.toFixed(4)}
         </p>
       </CardHeader>
       <CardContent className="p-4 space-y-4">
         
-        {/* Select Nativo (Mais simples que o do Shadcn para começar) */}
         <div className="space-y-1">
           <label className="text-sm font-medium">Situação</label>
           <select 
@@ -59,11 +54,12 @@ export function CreateVisitForm({ latitude, longitude, onSuccess, onCancel }: Pr
             value={focoType}
             onChange={(e) => setFocoType(e.target.value)}
           >
-            <option value="NENHUM">✅ Sem Foco (Limpo)</option>
-            <option value="PNEUS">🛞 Pneus</option>
-            <option value="CAIXA_DAGUA">💧 Caixa D'água</option>
-            <option value="LIXO">🗑️ Lixo Acumulado</option>
-            <option value="VASOS">🪴 Vasos de Planta</option>
+            <option value="NENHUM">{TEXTS.FOCOS.NENHUM}</option>
+            <option value="PNEUS">{TEXTS.FOCOS.PNEUS}</option>
+            <option value="CAIXA_DAGUA">{TEXTS.FOCOS.CAIXA_DAGUA}</option>
+            <option value="LIXO">{TEXTS.FOCOS.LIXO}</option>
+            <option value="VASOS">{TEXTS.FOCOS.VASOS}</option>
+            <option value="OUTROS">{TEXTS.FOCOS.OUTROS}</option>
           </select>
         </div>
 
@@ -78,15 +74,15 @@ export function CreateVisitForm({ latitude, longitude, onSuccess, onCancel }: Pr
         </div>
 
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" className="w-full" onClick={onCancel}>
-            Cancelar
+          <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); onCancel(); }}>
+            {TEXTS.MAP.CANCEL_BTN}
           </Button>
           <Button 
             className="w-full" 
-            onClick={() => mutation.mutate()} 
+            onClick={(e) => { e.stopPropagation(); mutation.mutate(); }} 
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? '...' : 'Salvar'}
+            {mutation.isPending ? '...' : TEXTS.MAP.SAVE_BTN}
           </Button>
         </div>
 

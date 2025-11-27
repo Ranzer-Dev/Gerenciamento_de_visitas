@@ -24,13 +24,19 @@ enum FocoType {
   OUTROS
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model Agent {
-  id    String @id @default(uuid())
-  name  String
-  email String @unique
-  password String
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  role      Role     @default(USER)
 
   visits Visit[]
 
@@ -49,6 +55,8 @@ model Visit {
   visitedAt DateTime    @default(now()) @map("visited_at")
   agentId   String      @map("agent_id")
   agent     Agent       @relation(fields: [agentId], references: [id])
+
+  deletedAt   DateTime?   @map("deleted_at")
 
   @@index([agentId])
   @@index([visitedAt])

@@ -1,79 +1,168 @@
-import { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DashboardStats } from '@/components/DashboardStats';
-import axios from 'axios';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
+import { useQuery, QueryClient, QueryClientProvider, useQueryClient, useMutation } from '@tanstack/react-query';
 import 'leaflet/dist/leaflet.css';
+import { api } from '@/lib/axios';
 
-// Importe os componentes que acabamos de criar
+import { DashboardStats } from '@/components/DashboardStats';
 import { MapClickHandler } from '@/components/MapClickHandler';
 import { CreateVisitForm } from '@/components/CreateVisitForm';
+import { AddressSearch } from '@/components/AddressSearch';
+import { LoginPage } from '@/pages/LoginPage';
+import { Button } from '@/components/ui/button';
+import { MenuMobile } from '@/components/MenuMobile';
+
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 const queryClient = new QueryClient();
 
+function MapController({ coords }: { coords: { lat: number; lng: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coords) {
+      map.flyTo([coords.lat, coords.lng], 18, { duration: 2 }); 
+    }
+  }, [coords, map]);
+  return null;
+}
+
 type Visit = {
-    id: string;
-    latitude: number;
-    longitude: number;
-    focoType: string;
-    notes: string;
-    agent: { name: string };
+  id: string;
+  latitude: number;
+  longitude: number;
+  focoType: string;
+  notes: string;
+  agent: { name: string };
 };
 
 function MapaDengue() {
-  // 1. Busca dados do Backend
-  
+  const { user } = useAuth();
+  const queryClientHook = useQueryClient();
+
   const { data: visits } = useQuery({
     queryKey: ['visits'],
     queryFn: async () => {
-      const res = await axios.get<Visit[]>('http://localhost:3333/visits');
-      // Dica: Abra o console do navegador para pegar um agentId válido daqui!
-      console.log("DADOS DO BANCO:", res.data); 
+      const res = await api.get<Visit[]>('/visits');
       return res.data;
-    }
+    },
+    refetchInterval: 30000
   });
 
-  // 2. Estado para controlar onde clicamos (para abrir o form)
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, force }: { id: string, force: boolean }) => {
+      await api.delete(`/visits/${id}?force=${force}`);
+    },
+    onSuccess: () => queryClientHook.invalidateQueries({ queryKey: ['visits'] }),
+    onError: () => alert('Erro ao excluir. Verifique suas permissões.')
+  });
+
   const [newVisitLocation, setNewVisitLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [flyToLocation, setFlyToLocation] = useState<{lat: number, lng: number} | null>(null);
+  
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showSearch, setShowSearch] = useState(true);
+  const [mapLayer, setMapLayer] = useState<'satellite' | 'street'>('satellite');
+
+  const markerRef = useRef<any>(null);
+  const eventHandlers = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          const { lat, lng } = marker.getLatLng();
+          setNewVisitLocation({ lat, lng });
+        }
+      },
+    }),
+    [],
+  );
 
   return (
-    <div style={{ height: '100vh', width: '100vw' }}>
+    <div style={{ height: '100vh', width: '100vw', position: 'relative' }}>
+      
+      {showSearch && (
+        <AddressSearch onSelectAddress={(lat, lng) => setFlyToLocation({ lat, lng })} />
+      )}
 
-      {visits && <DashboardStats visits={visits} />}
+      <MenuMobile 
+        showDashboard={showDashboard} 
+        setShowDashboard={setShowDashboard}
+        showSearch={showSearch}
+        setShowSearch={setShowSearch}
+        mapLayer={mapLayer}
+        setMapLayer={setMapLayer}
+      />
 
-      <MapContainer center={[-23.550520, -46.633308]} zoom={15} style={{ height: '100%', width: '100%' }}>
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; OpenStreetMap contributors'
-        />
+      {showDashboard && visits && <DashboardStats visits={visits} />}
 
-        {/* Detecta o clique no mapa */}
+      <MapContainer 
+        center={[-23.550520, -46.633308]} 
+        zoom={18} 
+        zoomControl={false} 
+        style={{ height: '100%', width: '100%' }}
+      >
+        <MapController coords={flyToLocation} />
+        <ZoomControl position="bottomright" />
+
+        {mapLayer === 'satellite' ? (
+           <TileLayer
+             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+             attribution='Tiles &copy; Esri'
+             maxZoom={19}
+           />
+        ) : (
+           <TileLayer
+             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+             attribution='&copy; OpenStreetMap contributors'
+           />
+        )}
+
         <MapClickHandler onMapClick={(lat, lng) => setNewVisitLocation({ lat, lng })} />
 
-        {/* Pinos Existentes (Vindos do Banco) */}
         {visits?.map((visit) => (
           <Marker key={visit.id} position={[visit.latitude, visit.longitude]}>
             <Popup>
-              <div className="p-2">
+              <div className="p-2 min-w-[150px]">
                 <strong className="block text-lg">{visit.focoType}</strong>
-                <span className="text-gray-600">{visit.notes}</span>
-                <hr className="my-2"/>
-                <small className="text-gray-400">Agente: {visit.agent.name}</small>
+                <span className="text-gray-600 block mb-2">{visit.notes}</span>
+                <small className="text-gray-400 block mb-3">Agente: {visit.agent.name}</small>
+                
+                {user?.role === 'ADMIN' && (
+                  <div className="flex gap-2 pt-2 border-t mt-1">
+                    <Button 
+                      variant="destructive" size="sm" className="h-7 text-xs w-full"
+                      onClick={() => {
+                         if(confirm('Tem certeza?')) deleteMutation.mutate({ id: visit.id, force: false });
+                      }}
+                    >
+                      Desativar
+                    </Button>
+                  </div>
+                )}
               </div>
             </Popup>
           </Marker>
         ))}
 
-        {/* Pino Temporário (Formulário de Criação) */}
         {newVisitLocation && (
-          <Marker position={[newVisitLocation.lat, newVisitLocation.lng]}>
+          <Marker 
+            draggable={true}
+            eventHandlers={eventHandlers}
+            position={[newVisitLocation.lat, newVisitLocation.lng]}
+            ref={markerRef}
+            opacity={0.8}
+            zIndexOffset={1000}
+          >
             <Popup 
                 minWidth={300} 
-                closeButton={false}
-                eventHandlers={{
-                    add: (e) => { e.target.openPopup() } 
-                }}
+                closeButton={false} 
+                autoPan={true}
+                eventHandlers={{ add: (e) => { e.target.openPopup() } }}
             >
+              <div className="text-center mb-2 text-xs font-bold text-blue-600 uppercase tracking-widest">
+                Nova Marcação (Arraste para ajustar)
+              </div>
+              
               <CreateVisitForm 
                 latitude={newVisitLocation.lat}
                 longitude={newVisitLocation.lng}
@@ -83,16 +172,23 @@ function MapaDengue() {
             </Popup>
           </Marker>
         )}
-
       </MapContainer>
     </div>
   );
 }
 
+function MainContent() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <LoginPage />;
+  return <MapaDengue />;
+}
+
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MapaDengue />
-    </QueryClientProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <MainContent />
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }

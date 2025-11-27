@@ -1,47 +1,33 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // 1. Limpa o banco antes de criar
-  await prisma.visit.deleteMany()
-  await prisma.agent.deleteMany()
+  console.log('🌱 Iniciando o Seed do Banco de Dados...')
 
-  console.log('🌱 Começando o Seed...')
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@dengue.gov.br';
+  const adminPasswordRaw = process.env.ADMIN_PASSWORD || 'Mudar@1234!'; 
+  const passwordHash = await bcrypt.hash(adminPasswordRaw, 6);
 
-  // 2. Cria um Agente
-  const agenteJoao = await prisma.agent.create({
-    data: {
-      name: 'João da Silva',
-      email: 'joao.agente@saude.gov.br',
-      password: 'senha_super_secreta_hash', 
-    }
+  const admin = await prisma.agent.upsert({
+    where: { email: adminEmail },
+    update: {
+      role: 'ADMIN',
+      password: passwordHash, 
+    },
+    create: {
+      email: adminEmail,
+      name: 'Super Administrador',
+      password: passwordHash,
+      role: 'ADMIN',
+    },
   })
 
-  console.log(`👤 Agente criado: ${agenteJoao.name}`)
+  console.log(`👮 Admin garantido: ${admin.email}`)
+  console.log(`🔑 Senha inicial: ${adminPasswordRaw}`)
 
-  await prisma.visit.create({
-    data: {
-      latitude: -23.550520, 
-      longitude: -46.633308, 
-      focoType: 'PNEUS',
-      notes: 'Muitos pneus no quintal dos fundos',
-      agentId: agenteJoao.id,
-    }
-  })
-
-  await prisma.visit.create({
-    data: {
-      latitude: -23.551520,
-      longitude: -46.634308, 
-      focoType: 'NENHUM',
-      notes: 'Residência verificada, tudo ok.',
-      agentId: agenteJoao.id,
-    }
-  })
-
-  console.log('📍 Visitas criadas!')
-  console.log('✅ Seed finalizado.')
+  console.log('✅ Seed finalizado com sucesso.')
 }
 
 main()
