@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 
 export async function agentsRoutes(app: FastifyInstance) {
   
-  // Middleware de verificação: Só Admin entra aqui
   app.addHook('onRequest', async (req, reply) => {
     try {
       await req.jwtVerify();
@@ -44,15 +43,15 @@ export async function agentsRoutes(app: FastifyInstance) {
     return reply.send({ message: 'Atualizado com sucesso' });
   });
 
-
   app.delete('/agents/:id', async (req, reply) => {
     const { id } = z.object({ id: z.string() }).parse(req.params);
 
-    if (req.user.id === id) {
+    if (req.user.sub === id) {
       return reply.status(400).send({ message: 'Você não pode excluir a si mesmo.' });
     }
 
     await prisma.visit.deleteMany({ where: { agentId: id } });
+    
     await prisma.agent.delete({ where: { id } });
 
     return reply.status(204).send();
