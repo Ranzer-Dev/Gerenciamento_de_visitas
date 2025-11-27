@@ -4,10 +4,10 @@ services:
     runtime: node
     region: ohio
     plan: free
-
+  
     rootDir: apps/api
-
-    buildCommand: pnpm install && npx prisma generate && pnpm build
+    
+    buildCommand: pnpm install --prod=false && npx prisma generate && pnpm build
     startCommand: node dist/server.js
     
     envVars:
