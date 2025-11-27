@@ -13,7 +13,9 @@ export function LoginPage() {
   const [name, setName] = useState('');
   const { signIn } = useAuth();
 
-  async function handleSubmit() {
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+
     try {
       if (isRegister) {
         await api.post('/register', { name, email, password });
@@ -35,18 +37,21 @@ export function LoginPage() {
         <CardHeader>
           <CardTitle>{isRegister ? "Novo Cadastro" : TEXTS.LOGIN.TITLE}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {isRegister && (
-             <Input placeholder="Nome Completo" value={name} onChange={e => setName(e.target.value)} />
-          )}
-          <Input placeholder={TEXTS.LOGIN.EMAIL_LABEL} value={email} onChange={e => setEmail(e.target.value)} />
-          <Input type="password" placeholder={TEXTS.LOGIN.PASS_LABEL} value={password} onChange={e => setPassword(e.target.value)} />
-          
-          <Button className="w-full" onClick={handleSubmit}>
-            {isRegister ? "Cadastrar" : TEXTS.LOGIN.BUTTON}
-          </Button>
+        <CardContent>
+  
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isRegister && (
+               <Input placeholder="Nome Completo" value={name} onChange={e => setName(e.target.value)} />
+            )}
+            <Input placeholder={TEXTS.LOGIN.EMAIL_LABEL} value={email} onChange={e => setEmail(e.target.value)} />
+            <Input type="password" placeholder={TEXTS.LOGIN.PASS_LABEL} value={password} onChange={e => setPassword(e.target.value)} />
+            
+            <Button className="w-full" type="submit">
+              {isRegister ? "Cadastrar" : TEXTS.LOGIN.BUTTON}
+            </Button>
+          </form>
 
-          <div className="text-center text-sm text-blue-600 cursor-pointer" onClick={() => setIsRegister(!isRegister)}>
+          <div className="text-center text-sm text-blue-600 cursor-pointer mt-4" onClick={() => setIsRegister(!isRegister)}>
             {isRegister ? "Já tenho conta" : TEXTS.LOGIN.REGISTER_LINK}
           </div>
         </CardContent>

@@ -2,6 +2,22 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import { useQuery, QueryClient, QueryClientProvider, useQueryClient, useMutation } from '@tanstack/react-query';
 import 'leaflet/dist/leaflet.css';
+
+// --- CORREÇÃO DO LEAFLET (ICONES 404) ---
+import L from 'leaflet';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Força o Leaflet a usar as imagens importadas corretamente pelo Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+// ----------------------------------------
+
 import { api } from '@/lib/axios';
 
 import { DashboardStats } from '@/components/DashboardStats';
@@ -45,7 +61,7 @@ function MapaDengue() {
       const res = await api.get<Visit[]>('/visits');
       return res.data;
     },
-    refetchInterval: 30000
+    refetchInterval: 30000 
   });
 
   const deleteMutation = useMutation({
