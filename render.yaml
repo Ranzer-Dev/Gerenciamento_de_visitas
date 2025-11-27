@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: api-dengue
+    env: node
+    region: ohio
+    plan: free
+    rootCommand: cd apps/api
+    buildCommand: pnpm install && npx prisma generate && pnpm build
+    startCommand: node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dengue-db
+          property: connectionString
+
+databases:
+  - name: dengue-db
+    databaseName: dengue_control
+    user: admin
+    plan: free
