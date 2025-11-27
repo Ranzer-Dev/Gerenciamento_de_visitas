@@ -1,0 +1,56 @@
+// apps/api/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VisitStatus {
+  COMPLETED
+  REFUSED
+  CLOSED
+}
+
+enum FocoType {
+  NENHUM
+  CAIXA_DAGUA
+  VASOS
+  LIXO
+  PNEUS
+  OUTROS
+}
+
+model Agent {
+  id    String @id @default(uuid())
+  name  String
+  email String @unique
+  password String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  visits Visit[]
+
+  @@map("agents")
+}
+
+model Visit {
+  id String @id @default(uuid())
+
+  latitude  Float
+  longitude Float
+
+  status    VisitStatus @default(COMPLETED)
+  focoType  FocoType    @default(NENHUM)
+  notes     String?     @db.Text
+  visitedAt DateTime    @default(now()) @map("visited_at")
+  agentId   String      @map("agent_id")
+  agent     Agent       @relation(fields: [agentId], references: [id])
+
+  @@index([agentId])
+  @@index([visitedAt])
+  @@map("visits")
+}
