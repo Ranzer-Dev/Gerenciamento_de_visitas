@@ -1,12 +1,15 @@
 services:
   - type: web
     name: api-dengue
-    env: node
+    runtime: node
     region: ohio
     plan: free
-    rootCommand: cd apps/api
+
+    rootDir: apps/api
+
     buildCommand: pnpm install && npx prisma generate && pnpm build
     startCommand: node dist/server.js
+    
     envVars:
       - key: NODE_ENV
         value: production
@@ -24,3 +27,4 @@ databases:
     databaseName: dengue_control
     user: admin
     plan: free
+    region: ohio
