@@ -26,7 +26,7 @@ export function MenuMobile({
     <>
       {showAgents && <AgentManager onClose={() => setShowAgents(false)} />}
 
-      <div className="absolute bottom-6 left-4 z-[1000] flex flex-col items-start gap-2">
+      <div className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-4 z-[1000] flex flex-col items-start gap-2">
         
         {isOpen && (
           <div className="bg-white rounded-lg shadow-2xl border border-zinc-200 p-4 w-72 mb-2 animate-in slide-in-from-bottom-5 fade-in duration-200">

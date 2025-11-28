@@ -45,7 +45,7 @@ export function AddressSearch({ onSelectAddress }: Props) {
   }
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1001] w-[90%] max-w-md">
+    <div className="absolute top-[calc(1rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[1001] w-[90%] max-w-md">
       <div className="flex gap-2 shadow-xl bg-white rounded-lg p-1">
         <Input 
           placeholder="Buscar rua, bairro..." 
